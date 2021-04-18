@@ -1,0 +1,20 @@
+[defaults]
+
+
+inventory={{ path_to_your_inventory_dir }}
+#This are the further option for connecting to that instance.
+
+host_key_checking=false
+ask_pass=false
+deprecation_warnings=false
+command_warnings=false
+remote_user={{remote_user_login_name}}
+private_key_file={{ec2_keys_path}}/awskey.pem
+roles_path={{roles_path}}
+
+#privilleges
+[privilege_escalation]
+become=true
+become_method=sudo
+become_user=root
+become_ask_pass=false

@@ -1,0 +1,114 @@
+ 
+# tasks file for aws_ec2_dynamic_inventory
+#
+# You must have configured yum in case your os is RHEL.
+#
+
+- name: "Including the credential file"
+  include_vars: credentials.yml
+
+# Installing the python so that further ansible can give instructions to install boto and boto3.
+- name: "Installing python36" 
+  package:
+            name: "python36"
+            state: present
+  
+- name: "Installing ansible, boto and boto3 AWS api(wait)"
+  pip:
+            name: "{{ item }}"
+            state: present
+  loop:
+            - "ansible"
+            - "boto"
+            - "boto3"
+
+# Creating the inventory directory for installing the python script in it.
+- name: "Creating a folder"
+  file:
+            path: "{{ path_to_your_inventory_dir }}"
+            state: directory 
+            mode: '0755'
+
+- name: "Creating the ansible configuration dir"
+  file: 
+            path: "/task19/"
+            state: directory 
+
+- name: "Creating the config file in the ansible config dir"
+  file:
+            path: "{{ path_to_your_ansible_cfg_file }}" 
+            state: touch
+            owner: root
+            group: root
+
+- name: "Updating the hosts inventory folder in conf file"
+  template:
+            src: config.yml
+            dest: "{{ path_to_your_ansible_cfg_file }}"
+            backup: yes
+
+- name: "Downloading the scripts in the hosts folder"
+  get_url:
+            url: "{{ item }}"
+            dest: "{{ path_to_your_inventory_dir }}/"
+  loop:
+            - "https://raw.githubusercontent.com/ansible/ansible/stable-2.9/contrib/inventory/ec2.py"
+            - "https://raw.githubusercontent.com/ansible/ansible/stable-2.9/contrib/inventory/ec2.ini"
+- name: "Making the script executable"
+  file:
+            dest: "{{ path_to_your_inventory_dir }}/{{ item }}"
+            mode: 01777
+  loop:
+            - "ec2.py"
+            - "ec2.ini"
+
+- name: "Updating the shebang in ec2.py file"
+  replace:
+            path: "{{ path_to_your_inventory_dir }}/ec2.py"
+            regexp: "#!/usr/bin/env python"
+            replace: "#!/usr/bin/python3"
+
+- name: "Commenting the ec2-utils line"
+  replace:
+            path: "{{ path_to_your_inventory_dir }}/ec2.py"
+            regexp: "from ansible.module_utils import ec2 as ec2_utils"
+            replace: "#from ansible.module_utils import ec2 as ec2_utils"
+            
+- name: "Entering your region"
+  lineinfile:
+            path: "{{ path_to_your_inventory_dir }}/ec2.ini"
+            regexp: "regions ="
+            line: "regions = {{ aws_region }}"
+
+# Credentials of AWS            
+- name: "Entering your access key"
+  lineinfile:
+            path: "{{ path_to_your_inventory_dir }}/ec2.ini"
+            regexp: "# aws_access_key_id ="
+            line: "aws_access_key_id = {{ aws_access_key }}"
+
+- name: "Entering your secret key"
+  lineinfile:
+            path: "{{ path_to_your_inventory_dir }}/ec2.ini"
+            regexp: "# aws_secret_access_key ="
+            line: "aws_secret_access_key = {{ aws_secret_key }}"
+ 
+
+# Run ec2.py file
+- name: "running ec2.py file"
+  shell : "python3 {{ path_to_your_inventory_dir }}/ec2.py "
+  register: x
+
+- debug:
+        var: x.stdout_lines
+# Having Security Token and do uncomment these following line.
+# Recommended if having AWS Educate account.
+
+#- name: "Entering your security token"
+#  lineinfile:
+#          path: "{{ path_to_your_inventory_dir }}/ec2.ini"
+#          regexp: "# aws_security_token ="
+#          line: "aws_security_token = {{ aws_security_token }}"
+ 
+    
+     
